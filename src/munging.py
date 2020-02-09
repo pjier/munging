@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+""" Module holds all classes to extract day with lowest temp spread """
+
 import argparse
 from collections import namedtuple
 from functools import reduce
@@ -8,18 +11,19 @@ TempSpread = namedtuple('Temp', 'day max min')
 
 
 class WeatherBuilder:
-    """ 
+    """
         Builds a list of namedtuples
         The input file data is aligned by column offset.
     """
 
-    slices = [slice(i, j) for i, j in 
-        [(2,4), (5,8), (9,14)]]
+    slices = [slice(i, j) for i, j in
+              [(2, 4), (5, 8), (9, 14)]]
 
     def __init__(self):
         self._obj = []
 
     def build_part(self, line):
+        """ Add a temperature observation """
         data_points = []
         try:
             for slc in WeatherBuilder.slices:
@@ -29,6 +33,7 @@ class WeatherBuilder:
             return
 
     def get_result(self):
+        """ Just return the results """
         return self._obj
 
 
@@ -43,7 +48,8 @@ class MinTempSpreadStrategy:
 
     def calculate(self, data):
         """ Expects a list of TempSpread tuples """
-        min_entry = reduce(lambda x, y: x if (x.max - x.min) < (y.max - y.min) else y, data)
+        min_entry = reduce(lambda x, y: x if (x.max - x.min) < (y.max - y.min)
+                           else y, data)
         return min_entry.day
 
 
@@ -64,14 +70,16 @@ def main(args):
     """ Main entry point of the app """
     fp = FileParser(WeatherBuilder())
     data = fp.read(args.datafile)
-    print(f'Day with minimum spread is {MinTempSpreadStrategy().calculate(data)}')
+    print(f'Day with minimum spread is\
+        {MinTempSpreadStrategy().calculate(data)}')
 
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
 
     # Required positional argument
-    PARSER.add_argument("datafile", help="Path to datafile with temperature readings")
+    PARSER.add_argument("datafile",
+                        help="Path to datafile with temperature readings")
 
     MYARGS = PARSER.parse_args()
     main(MYARGS)

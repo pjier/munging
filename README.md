@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/pjier/munging.svg?branch=master)](https://travis-ci.org/pjier/munging)
+
 # Data munging
 
 Simple Python project to solve [this task](http://codekata.com/kata/kata04-data-munging/).

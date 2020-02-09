@@ -39,11 +39,7 @@ code-style:
 	@pycodestyle --max-line-length=80 $(SRC_CORE)
 
 code-lint:
-	@type pyflakes >/dev/null 2>&1 || (echo "Run 'pip install pyflakes' first." >&2 ; exit 1)
-	@type pylint >/dev/null 2>&1 || (echo "Run 'pip install pylint' first." >&2 ; exit 1)
 	@type flake8 >/dev/null 2>&1 || (echo "Run 'pip install flake8' first." >&2 ; exit 1)
-	@pyflakes $(SRC_CORE)
-	@pylint $(SRC_CORE)
 	@flake8 --max-complexity 10 $(SRC_CORE)
 
 code-count:
