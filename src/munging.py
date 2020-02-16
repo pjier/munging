@@ -7,34 +7,50 @@ import argparse
 from collections import namedtuple
 from functools import reduce
 
+# TODO PI 2020-02-16
+# - Arrange the temperature and goal metadata into classes
+# - Break out DataBuilder.build_part() into at least another method
+
 TempSpread = namedtuple('Temp', 'day max min')
+temperature_file_slices = [slice(i, j) for i, j in
+                           [(2, 4), (5, 8), (9, 14)]]
+temp_field_types = (int, int, int)
+
+GoalSpread = namedtuple('SeasonResult', 'team for_goals against_goals')
+football_file_slices = [slice(i, j) for i, j in
+                        [(7, 23), (43, 45), (50, 52)]]
+football_field_types = (str, int, int)
 
 
-class WeatherBuilder:
+class DataBuilder:
     """
-        Builds a list of namedtuples
-        The input file data is aligned by column offset.
+        Builds an object that contains 0..n observations on which we can
+        subsequently calculate some metric.
     """
 
-    slices = [slice(i, j) for i, j in
-              [(2, 4), (5, 8), (9, 14)]]
-
-    def __init__(self):
-        self._obj = []
+    def __init__(self, slices, namedtuple_to_build, field_types):
+        assert len(slices) == len(field_types)
+        self._observations = []
+        self._slices = slices
+        self._namedtuple = namedtuple_to_build
+        self._field_types = field_types
 
     def build_part(self, line):
         """ Add a temperature observation """
         data_points = []
         try:
-            for slc in WeatherBuilder.slices:
-                data_points.append(int(line[slc]))
-            self._obj.append(TempSpread(*data_points))
+            for this_type, this_slice in zip(self._field_types, self._slices):
+                data_point = this_type(line[this_slice])
+                if type(data_point) == str:
+                    data_point = data_point.strip()
+                data_points.append(data_point)
+            self._observations.append(self._namedtuple(*data_points))
         except ValueError:
             return
 
     def get_result(self):
-        """ Just return the results """
-        return self._obj
+        """ Just return a list of TempSpread tuples """
+        return self._observations
 
 
 class MinTempSpreadStrategy:
@@ -54,12 +70,15 @@ class MinTempSpreadStrategy:
 
 
 class FileParser:
+    """
+        Read the contents of a datafile. Pass each row to the builder that is
+        responsible for building the object with observations.
+    """
 
     def __init__(self, builder):
         self._builder = builder
 
     def read(self, filename):
-        """ Read the contents of a datafile """
         with open(filename) as f:
             for line in f:
                 self._builder.build_part(line)
@@ -67,8 +86,8 @@ class FileParser:
 
 
 def main(args):
-    """ Main entry point of the app """
-    fp = FileParser(WeatherBuilder())
+    fp = FileParser(DataBuilder(temperature_file_slices, TempSpread,
+                    temp_field_types))
     data = fp.read(args.datafile)
     print(f'Day with minimum spread is\
         {MinTempSpreadStrategy().calculate(data)}')
