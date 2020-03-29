@@ -10,6 +10,9 @@ from src.munging import *
 def get_weather_builder():
     return DataBuilder(temperature_file_slices, TempSpread, temp_field_types)
 
+def get_football_builder():
+    return DataBuilder(football_file_slices, GoalSpread, football_field_types)
+
 class TestWeatherBuilder:
 
     def test_build_one_line(self):
@@ -26,7 +29,7 @@ class TestWeatherBuilder:
 class TestFootballBuilder:
 
     def test_build_one_line(self):
-        builder = DataBuilder(football_file_slices, GoalSpread, football_field_types)
+        builder = get_football_builder()
         builder.build_part("    1. Arsenal         38    26   9   3    79  -  36    87")
         g = GoalSpread('Arsenal', 79, 36)
         assert builder.get_result() == [g]
@@ -38,10 +41,15 @@ class TestFileParser:
         with pytest.raises(FileNotFoundError):
             parser.read('nonsense')
 
-    def test_read_file(self):
+    def test_read_weather_file(self):
         datafile = os.path.dirname(os.path.abspath(__file__)) + '/../data/weather.dat'
         parser = FileParser(get_weather_builder())
         assert 30 == len(parser.read(datafile))
+
+    def test_read_football_file(self):
+        datafile = os.path.dirname(os.path.abspath(__file__)) + '/../data/football.dat'
+        parser = FileParser(get_football_builder())
+        assert 20 == len(parser.read(datafile))
 
 
 class TestMinTempSpreadStrategy:
@@ -57,3 +65,17 @@ class TestMinTempSpreadStrategy:
                 TempSpread(2, 90, 50),
                 TempSpread(8, 55, 42)]
         assert 1 == strategy.calculate(data)
+
+
+class TestMinGoalDifferenceStrategy:
+
+    def test_min_goal_oneline(self):
+        strategy = MinGoalDifferenceStrategy()
+        data = [GoalSpread('Manchester_U', 15, 12)]
+        assert 'Manchester_U' == strategy.calculate(data)
+
+    def test_min_goal_twoline(self):
+        strategy = MinGoalDifferenceStrategy()
+        data = [GoalSpread('Manchester_U', 15, 12),
+                GoalSpread('Liverpool', 13, 12)]
+        assert 'Liverpool' == strategy.calculate(data)

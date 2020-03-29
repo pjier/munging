@@ -6,6 +6,7 @@
 import argparse
 from collections import namedtuple
 from functools import reduce
+import logging
 
 # TODO PI 2020-02-16
 # - Arrange the temperature and goal metadata into classes
@@ -46,6 +47,7 @@ class DataBuilder:
                 data_points.append(data_point)
             self._observations.append(self._namedtuple(*data_points))
         except ValueError:
+            logging.info(f'Unable to parse line {line}')
             return
 
     def get_result(self):
@@ -69,6 +71,23 @@ class MinTempSpreadStrategy:
         return min_entry.day
 
 
+class MinGoalDifferenceStrategy:
+    """
+        Returns the name of the team with the smallest difference between
+        for_goals and against_goals.
+    """
+
+    def __init__(self):
+        pass
+
+    def calculate(self, data):
+        """ Expects a list of GoalSpread tuples """
+        min_entry = reduce(lambda x, y: x if abs(x.for_goals - x.against_goals)
+                           < abs(y.for_goals - y.against_goals)
+                           else y, data)
+        return min_entry.team
+
+
 class FileParser:
     """
         Read the contents of a datafile. Pass each row to the builder that is
@@ -86,19 +105,31 @@ class FileParser:
 
 
 def main(args):
-    fp = FileParser(DataBuilder(temperature_file_slices, TempSpread,
-                    temp_field_types))
-    data = fp.read(args.datafile)
-    print(f'Day with minimum spread is\
-        {MinTempSpreadStrategy().calculate(data)}')
+    if args.datatype == 'weather':
+        fp = FileParser(DataBuilder(temperature_file_slices, TempSpread,
+                                    temp_field_types))
+        data = fp.read(args.datafile)
+        print(f'Day with minimum spread is\
+            {MinTempSpreadStrategy().calculate(data)}')
+    else:
+        fp = FileParser(DataBuilder(football_file_slices, GoalSpread,
+                                    football_field_types))
+        data = fp.read(args.datafile)
+        print(f'The team with the smallest goal spread is\
+            {MinGoalDifferenceStrategy().calculate(data)}')
 
 
 if __name__ == "__main__":
-    PARSER = argparse.ArgumentParser()
+    PARSER = argparse.ArgumentParser(
+        description='Calculate a metric based on a data file')
 
-    # Required positional argument
-    PARSER.add_argument("datafile",
-                        help="Path to datafile with temperature readings")
+    PARSER.add_argument('datafile',
+                        help='Path to datafile with temperature readings')
+    PARSER.add_argument('--datatype',
+                        help='Type of data contained in the file',
+                        choices=['weather', 'football'],
+                        default='weather')
+    # TODO: Add argument for log level
 
     MYARGS = PARSER.parse_args()
     main(MYARGS)
